@@ -1,855 +1,265 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
-    <title>拼豆小工坊</title>
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap"
-    />
-    <style>
-      :root {
-        --bg: #d4ebf1;
-        --panel: #ffffff;
-        --ink: #1d2b4f;
-        --soft: #5d6b8c;
-        --line: #c5d3e3;
-        --board: #f7f9fd;
-        --peg: #cfd8e6;
-        --accent: #ff5c8a;
-        box-sizing: border-box;
-        padding-top: env(safe-area-inset-top, 0px);
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-      }
-      @media (prefers-color-scheme: dark) {
-        :root:not([data-theme="light"]) {
-          --bg: #141c33;
-          --panel: #1f2a47;
-          --ink: #eaf0ff;
-          --soft: #9fb0d6;
-          --line: #33436b;
-          --board: #2a3558;
-          --peg: #44547f;
-        }
-      }
-      :root[data-theme="dark"] {
-        --bg: #141c33;
-        --panel: #1f2a47;
-        --ink: #eaf0ff;
-        --soft: #9fb0d6;
-        --line: #33436b;
-        --board: #2a3558;
-        --peg: #44547f;
-      }
-      * {
-        box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
-      }
-      html,
-      body {
-        margin: 0;
-        height: 100%;
-      }
-      body {
-        background: var(--bg);
-        color: var(--ink);
-        font-family:
-          "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
-          sans-serif;
-        user-select: none;
-        -webkit-user-select: none;
-        touch-action: manipulation;
-      }
-      .app {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 340px;
-        gap: 14px;
-        padding: 12px;
-        height: 100dvh;
-      }
-      .stage {
-        position: relative;
-        display: grid;
-        place-items: center;
-        min-width: 0;
-        min-height: 0;
-      }
-      canvas#c {
-        touch-action: none;
-        border-radius: 18px;
-        border: 3px solid var(--ink);
-        background: var(--board);
-        display: block;
-      }
-      .side {
-        background: var(--panel);
-        border-radius: 18px;
-        border: 3px solid var(--ink);
-        padding: 14px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        overflow: auto;
-      }
-      h1 {
-        margin: 0;
-        font-family:
-          "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei", sans-serif;
-        font-size: 30px;
-        font-weight: 400;
-        letter-spacing: 2px;
-      }
-      button {
-        font: inherit;
-        color: var(--ink);
-        background: var(--panel);
-        border: 2px solid var(--ink);
-        border-radius: 12px;
-        min-height: 48px;
-        padding: 0 14px;
-        cursor: pointer;
-      }
-      button:active {
-        transform: translateY(1px);
-      }
-      button:focus-visible,
-      input:focus-visible {
-        outline: 3px solid var(--accent);
-        outline-offset: 2px;
-      }
-      button[disabled] {
-        opacity: 0.4;
-      }
-      .tabs,
-      .tools,
-      .tpls {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .tabs button,
-      .tools button {
-        flex: 1;
-      }
-      .tabs button.on,
-      .tools button.on,
-      .tpls button.on {
-        background: var(--ink);
-        color: var(--panel);
-      }
-      .tpls button {
-        min-height: 42px;
-        padding: 0 12px;
-      }
-      .ref {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-      }
-      #ref {
-        border: 2px solid var(--line);
-        border-radius: 10px;
-        background: var(--board);
-      }
-      #pct {
-        font-size: 32px;
-        font-weight: 700;
-      }
-      .ref label {
-        font-size: 15px;
-        color: var(--soft);
-        display: flex;
-        gap: 6px;
-        align-items: center;
-      }
-      .ref input {
-        width: 22px;
-        height: 22px;
-      }
-      .palette {
-        display: grid;
-        grid-template-columns: repeat(7, 1fr);
-        gap: 8px;
-      }
-      .sw {
-        min-height: 0;
-        aspect-ratio: 1;
-        padding: 0;
-        border-radius: 50%;
-        border: 2px solid var(--line);
-      }
-      .sw.on {
-        border: 3px solid var(--ink);
-        box-shadow:
-          0 0 0 3px var(--panel),
-          0 0 0 6px var(--accent);
-      }
-      .big {
-        background: var(--accent);
-        color: #fff;
-        border-color: var(--ink);
-        font-size: 18px;
-        font-weight: 700;
-        min-height: 56px;
-      }
-      .hint {
-        font-size: 14px;
-        color: var(--soft);
-        margin: 0;
-        line-height: 1.5;
-      }
-      #toast {
-        position: absolute;
-        top: 10px;
-        left: 50%;
-        transform: translate(-50%, -20px);
-        background: var(--ink);
-        color: var(--panel);
-        padding: 10px 18px;
-        border-radius: 999px;
-        font-size: 16px;
-        opacity: 0;
-        pointer-events: none;
-        transition: 0.3s;
-        max-width: 90%;
-        text-align: center;
-      }
-      #toast.show {
-        opacity: 1;
-        transform: translate(-50%, 0);
-      }
-      [hidden] {
-        display: none !important;
-      }
-      @media (orientation: portrait) {
-        .app {
-          grid-template-columns: 1fr;
-          grid-template-rows: auto auto;
-          height: auto;
-          min-height: 100dvh;
-        }
-        .stage {
-          height: min(calc(100vw - 24px), 62vh);
-        }
-        html,
-        body {
-          height: auto;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="app">
-      <main class="stage">
-        <canvas id="c" aria-label="拼豆板"></canvas>
-        <div id="toast"></div>
-      </main>
-      <aside class="side">
-        <h1>拼豆小工坊</h1>
-        <div class="tabs">
-          <button data-m="free" class="on">自由创作</button
-          ><button data-m="task">照图拼豆</button>
-        </div>
-        <section
-          id="taskBox"
-          hidden
-          style="display: flex; flex-direction: column; gap: 10px"
-        >
-          <div class="tpls" id="tpls"></div>
-          <div class="tpls">
-            <button id="up" style="flex: 1">上传我的图片</button
-            ><input type="file" id="file" accept="image/*" hidden />
-          </div>
-          <label
-            class="hint"
-            style="display: flex; gap: 6px; align-items: center"
-            ><input
-              type="checkbox"
-              id="nowhite"
-              checked
-              style="width: 20px; height: 20px"
-            />自动去掉白色背景</label
-          >
-          <div class="ref">
-            <canvas id="ref" width="96" height="96"></canvas>
-            <div>
-              <div id="pct">0%</div>
-              <label><input type="checkbox" id="hint" checked />显示提示</label>
-            </div>
-          </div>
-        </section>
-        <div class="palette" id="pal"></div>
-        <div class="tools">
-          <button id="pen" class="on">画笔</button
-          ><button id="era">橡皮</button> <button id="und">撤销</button
-          ><button id="clr">清空</button>
-        </div>
-        <button id="iron" class="big">熨烫定型</button>
-        <p class="hint">
-          选一个颜色，点按或拖动手指就能放豆子。熨烫后豆子会融成一整片，点“拆开重拼”可以继续修改。
-        </p>
-      </aside>
-    </div>
-    <script>
-      const N = 16;
-      const COLORS = [
-        ["r", "红", "#e8433f"],
-        ["o", "橙", "#f58a2b"],
-        ["y", "黄", "#f7d23e"],
-        ["m", "嫩绿", "#b8e07a"],
-        ["g", "绿", "#3fae55"],
-        ["t", "青", "#2fb5a3"],
-        ["l", "浅蓝", "#8cd0f0"],
-        ["b", "蓝", "#3d7fe0"],
-        ["p", "紫", "#8a5fd1"],
-        ["k", "粉", "#f58bb5"],
-        ["w", "白", "#fbfbfd"],
-        ["e", "灰", "#aab0bd"],
-        ["n", "棕", "#8a5a3b"],
-        ["d", "黑", "#2b2b33"],
-        ["s", "肤色", "#f6cfa6"],
-      ];
-      const IDX = {};
-      COLORS.forEach((c, i) => (IDX[c[0]] = i));
-      const TPL = {
-        爱心: [
-          "............",
-          "..rrr..rrr..",
-          ".rrrrrrrrrr.",
-          ".rrwrrrrrrr.",
-          ".rrrrrrrrrr.",
-          ".rrrrrrrrrr.",
-          "..rrrrrrrr..",
-          "...rrrrrr...",
-          "....rrrr....",
-          ".....rr.....",
-          "............",
-          "............",
-        ],
-        笑脸: [
-          "....yyyy....",
-          "..yyyyyyyy..",
-          ".yyyyyyyyyy.",
-          ".yydyyyydyy.",
-          "yyydyyyydyyy",
-          "yyyyyyyyyyyy",
-          "yyyyyyyyyyyy",
-          "yydyyyyyydyy",
-          ".yyddddddyy.",
-          ".yyyyyyyyyy.",
-          "..yyyyyyyy..",
-          "....yyyy....",
-        ],
-        蘑菇: [
-          "....rrrr....",
-          "..rrrrrrrr..",
-          ".rrwwrrrwwr.",
-          "rrwwwrrrwwwr",
-          "rrrwwrrrrwrr",
-          "rrrrrrrrrrrr",
-          ".wwwwwwwwww.",
-          "...ssssss...",
-          "...ssdssds..",
-          "...ssssss...",
-          "...ssssss...",
-          "............",
-        ],
-        星星: [
-          ".....yy.....",
-          ".....yy.....",
-          "....yyyy....",
-          "yyyyyyyyyyyy",
-          ".yyyyyyyyyy.",
-          "..yyyyyyyy..",
-          "...yyyyyy...",
-          "..yyyyyyyy..",
-          ".yyyy..yyyy.",
-          ".yyy....yyy.",
-          "yy........yy",
-          "............",
-        ],
-      };
-      const cv = document.getElementById("c"),
-        ctx = cv.getContext("2d"),
-        stage = document.querySelector(".stage");
-      const state = {
-        mode: "free",
-        tool: "pen",
-        cur: 0,
-        tpl: "爱心",
-        fuse: 0,
-        ironed: false,
-        anim: null,
-        won: false,
-      };
-      let gridFree = new Array(N * N).fill(-1),
-        gridTask = new Array(N * N).fill(-1),
-        undo = [],
-        target = null,
-        drawing = false,
-        last = -1,
-        shine = -1;
-      try {
-        const s = JSON.parse(localStorage.getItem("pindou_free") || "null");
-        if (Array.isArray(s) && s.length === N * N) gridFree = s;
-      } catch (e) {}
-      const grid = () => (state.mode === "free" ? gridFree : gridTask);
-      const css = (v) =>
-        getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>拼豆小工坊</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&display=swap">
+<style>
+:root{--bg:#d4ebf1;--panel:#ffffff;--ink:#1d2b4f;--soft:#5d6b8c;--line:#c5d3e3;--board:#f7f9fd;--peg:#cfd8e6;--accent:#ff5c8a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141c33;--panel:#1f2a47;--ink:#eaf0ff;--soft:#9fb0d6;--line:#33436b;--board:#2a3558;--peg:#44547f}}
+:root[data-theme="dark"]{--bg:#141c33;--panel:#1f2a47;--ink:#eaf0ff;--soft:#9fb0d6;--line:#33436b;--board:#2a3558;--peg:#44547f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;padding:12px;height:100dvh}
+.stage{position:relative;display:grid;place-items:center;min-width:0;min-height:0}
+canvas#c{touch-action:none;border-radius:18px;border:3px solid var(--ink);background:var(--board);display:block}
+.side{background:var(--panel);border-radius:18px;border:3px solid var(--ink);padding:14px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+h1{margin:0;font-family:"ZCOOL KuaiLe","PingFang SC","Microsoft YaHei",sans-serif;font-size:30px;font-weight:400;letter-spacing:2px}
+button{font:inherit;color:var(--ink);background:var(--panel);border:2px solid var(--ink);border-radius:12px;min-height:48px;padding:0 14px;cursor:pointer}
+button:active{transform:translateY(1px)}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button[disabled]{opacity:.4}
+.tabs,.tools,.tpls{display:flex;gap:8px;flex-wrap:wrap}
+.tabs button,.tools button{flex:1}
+.tabs button.on,.tools button.on,.tpls button.on{background:var(--ink);color:var(--panel)}
+.tpls button{min-height:42px;padding:0 12px}
+.ref{display:flex;gap:12px;align-items:center}
+#ref{border:2px solid var(--line);border-radius:10px;background:var(--board)}
+#pct{font-size:32px;font-weight:700}
+.ref label{font-size:15px;color:var(--soft);display:flex;gap:6px;align-items:center}
+.ref input{width:22px;height:22px}
+.palette{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.sw{min-height:0;aspect-ratio:1;padding:0;border-radius:50%;border:2px solid var(--line)}
+.sw.on{border:3px solid var(--ink);box-shadow:0 0 0 3px var(--panel),0 0 0 6px var(--accent)}
+.big{background:var(--accent);color:#fff;border-color:var(--ink);font-size:18px;font-weight:700;min-height:56px}
+.hint{font-size:14px;color:var(--soft);margin:0;line-height:1.5}
+#toast{position:absolute;top:10px;left:50%;transform:translate(-50%,-20px);background:var(--ink);color:var(--panel);padding:10px 18px;border-radius:999px;font-size:16px;opacity:0;pointer-events:none;transition:.3s;max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+[hidden]{display:none!important}
+#gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:grid;place-items:center;padding:20px}
+.gcard{background:var(--panel);border:3px solid var(--ink);border-radius:18px;padding:22px;max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}
+.gcard h2{margin:0;font-family:"ZCOOL KuaiLe","PingFang SC","Microsoft YaHei",sans-serif;font-size:28px;font-weight:400;letter-spacing:2px}
+.gcard .q{margin:0;font-size:20px;font-weight:700}
+#opts{display:flex;flex-direction:column;gap:10px}
+#opts button{width:100%;text-align:left;min-height:56px;font-size:18px;line-height:1.4;padding:10px 14px}
+@media (orientation:portrait){
+ .app{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto;min-height:100dvh}
+ .stage{height:min(calc(100vw - 24px),62vh)}
+ html,body{height:auto}
+}
+</style>
+</head>
+<body>
+<div id="gate" role="dialog" aria-modal="true"><div class="gcard"><h2>先答一题再进来</h2><p class="q">拼完拼豆你会说什么？</p><div id="opts"></div><p id="gmsg" class="hint" aria-live="polite"></p></div></div>
+<div class="app">
+ <main class="stage"><canvas id="c" aria-label="拼豆板"></canvas><div id="toast"></div></main>
+ <aside class="side">
+  <h1>拼豆小工坊</h1>
+  <div class="tabs"><button data-m="free" class="on">自由创作</button><button data-m="task">照图拼豆</button></div>
+  <section id="taskBox" hidden style="display:flex;flex-direction:column;gap:10px">
+   <div class="tpls" id="tpls"></div>
+   <div class="tpls"><button id="up" style="flex:1">上传我的图片</button><input type="file" id="file" accept="image/*" hidden></div>
+   <label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="nowhite" checked style="width:20px;height:20px">自动去掉白色背景</label>
+   <div class="ref"><canvas id="ref" width="96" height="96"></canvas>
+    <div><div id="pct">0%</div><label><input type="checkbox" id="hint" checked>显示提示</label></div></div>
+  </section>
+  <div class="palette" id="pal"></div>
+  <div class="tools">
+   <button id="pen" class="on">画笔</button><button id="era">橡皮</button>
+   <button id="und">撤销</button><button id="clr">清空</button>
+  </div>
+  <button id="iron" class="big">熨烫定型</button>
+  <p class="hint">选一个颜色，点按或拖动手指就能放豆子。熨烫后豆子会融成一整片，点“拆开重拼”可以继续修改。</p>
+ </aside>
+</div>
+<script>
+const N=16;
+const COLORS=[["r","红","#e8433f"],["o","橙","#f58a2b"],["y","黄","#f7d23e"],["m","嫩绿","#b8e07a"],["g","绿","#3fae55"],["t","青","#2fb5a3"],["l","浅蓝","#8cd0f0"],["b","蓝","#3d7fe0"],["p","紫","#8a5fd1"],["k","粉","#f58bb5"],["w","白","#fbfbfd"],["e","灰","#aab0bd"],["n","棕","#8a5a3b"],["d","黑","#2b2b33"],["s","肤色","#f6cfa6"]];
+const IDX={};COLORS.forEach((c,i)=>IDX[c[0]]=i);
+const TPL={
+"爱心":["............","..rrr..rrr..",".rrrrrrrrrr.",".rrwrrrrrrr.",".rrrrrrrrrr.",".rrrrrrrrrr.","..rrrrrrrr..","...rrrrrr...","....rrrr....",".....rr.....","............","............"],
+"笑脸":["....yyyy....","..yyyyyyyy..",".yyyyyyyyyy.",".yydyyyydyy.","yyydyyyydyyy","yyyyyyyyyyyy","yyyyyyyyyyyy","yydyyyyyydyy",".yyddddddyy.",".yyyyyyyyyy.","..yyyyyyyy..","....yyyy...."],
+"蘑菇":["....rrrr....","..rrrrrrrr..",".rrwwrrrwwr.","rrwwwrrrwwwr","rrrwwrrrrwrr","rrrrrrrrrrrr",".wwwwwwwwww.","...ssssss...","...ssdssds..","...ssssss...","...ssssss...","............"],
+"星星":[".....yy.....",".....yy.....","....yyyy....","yyyyyyyyyyyy",".yyyyyyyyyy.","..yyyyyyyy..","...yyyyyy...","..yyyyyyyy..",".yyyy..yyyy.",".yyy....yyy.","yy........yy","............"]
+};
+const cv=document.getElementById('c'),ctx=cv.getContext('2d'),stage=document.querySelector('.stage');
+const state={mode:'free',tool:'pen',cur:0,tpl:'爱心',fuse:0,ironed:false,anim:null,won:false};
+let gridFree=new Array(N*N).fill(-1),gridTask=new Array(N*N).fill(-1),undo=[],target=null,drawing=false,last=-1,shine=-1;
+try{const s=JSON.parse(localStorage.getItem('pindou_free')||'null');if(Array.isArray(s)&&s.length===N*N)gridFree=s}catch(e){}
+const grid=()=>state.mode==='free'?gridFree:gridTask;
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
-      function buildTarget() {
-        target = new Array(N * N).fill(-1);
-        const rows = state.tpl === "custom" ? [] : TPL[state.tpl],
-          o = 2;
-        rows.forEach((row, y) =>
-          [...row].forEach((ch, x) => {
-            if (ch !== ".") target[(y + o) * N + x + o] = IDX[ch];
-          }),
-        );
-        if (state.tpl === "custom" && customTarget)
-          target = customTarget.slice();
-        const r = document.getElementById("ref").getContext("2d");
-        r.clearRect(0, 0, 96, 96);
-        const c = 96 / N;
-        target.forEach((v, i) => {
-          if (v < 0) return;
-          r.fillStyle = COLORS[v][2];
-          r.beginPath();
-          r.arc(
-            ((i % N) + 0.5) * c,
-            (Math.floor(i / N) + 0.5) * c,
-            c * 0.42,
-            0,
-            7,
-          );
-          r.fill();
-        });
-      }
-      function rr(x, y, w, h, r) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-      }
-      function draw() {
-        const s = cv.width,
-          cs = s / N,
-          f = state.fuse,
-          g = grid(),
-          hint = document.getElementById("hint").checked;
-        ctx.clearRect(0, 0, s, s);
-        ctx.fillStyle = css("--board");
-        ctx.fillRect(0, 0, s, s);
-        const peg = css("--peg");
-        for (let i = 0; i < N * N; i++) {
-          const cx = ((i % N) + 0.5) * cs,
-            cy = (Math.floor(i / N) + 0.5) * cs,
-            v = g[i];
-          if (v < 0) {
-            if (state.mode === "task" && hint && target[i] >= 0) {
-              ctx.globalAlpha = 0.3;
-              ctx.fillStyle = COLORS[target[i]][2];
-              ctx.beginPath();
-              ctx.arc(cx, cy, cs * 0.4, 0, 7);
-              ctx.fill();
-              ctx.globalAlpha = 1;
-            }
-            ctx.fillStyle = peg;
-            ctx.beginPath();
-            ctx.arc(cx, cy, cs * 0.11, 0, 7);
-            ctx.fill();
-          } else {
-            const h = cs * (0.43 + 0.07 * f),
-              rad = h * (1 - 0.88 * f);
-            ctx.fillStyle = COLORS[v][2];
-            rr(cx - h, cy - h, h * 2, h * 2, rad);
-            ctx.fill();
-            ctx.fillStyle = "rgba(0,0,0,.22)";
-            ctx.beginPath();
-            ctx.arc(cx, cy, cs * (0.15 - 0.1 * f), 0, 7);
-            ctx.fill();
-            ctx.fillStyle =
-              "rgba(255,255,255," + (0.4 * (1 - f)).toFixed(2) + ")";
-            ctx.beginPath();
-            ctx.arc(cx - cs * 0.2, cy - cs * 0.2, cs * 0.09, 0, 7);
-            ctx.fill();
-          }
-        }
-        if (shine >= 0) {
-          const p = shine * (s * 2.2) - s * 0.6,
-            gr = ctx.createLinearGradient(p - s * 0.2, 0, p + s * 0.2, s * 0.4);
-          gr.addColorStop(0, "rgba(255,255,255,0)");
-          gr.addColorStop(0.5, "rgba(255,255,255,.45)");
-          gr.addColorStop(1, "rgba(255,255,255,0)");
-          ctx.fillStyle = gr;
-          ctx.fillRect(0, 0, s, s);
-        }
-      }
-      function fit() {
-        const r = stage.getBoundingClientRect(),
-          size = Math.floor(Math.min(r.width, r.height)),
-          d = Math.min(window.devicePixelRatio || 1, 2);
-        cv.style.width = cv.style.height = size + "px";
-        cv.width = cv.height = Math.round(size * d);
-        draw();
-      }
-      new ResizeObserver(fit).observe(stage);
-      matchMedia("(prefers-color-scheme: dark)").addEventListener(
-        "change",
-        draw,
-      );
+function buildTarget(){
+  target=new Array(N*N).fill(-1);const rows=state.tpl==='custom'?[]:TPL[state.tpl],o=2;
+  rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(ch!=='.')target[(y+o)*N+x+o]=IDX[ch]}));
+  if(state.tpl==='custom'&&customTarget)target=customTarget.slice();
+  const r=document.getElementById('ref').getContext('2d');r.clearRect(0,0,96,96);const c=96/N;
+  target.forEach((v,i)=>{if(v<0)return;r.fillStyle=COLORS[v][2];r.beginPath();r.arc((i%N+.5)*c,(Math.floor(i/N)+.5)*c,c*.42,0,7);r.fill()});
+}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function draw(){
+  const s=cv.width,cs=s/N,f=state.fuse,g=grid(),hint=document.getElementById('hint').checked;
+  ctx.clearRect(0,0,s,s);ctx.fillStyle=css('--board');ctx.fillRect(0,0,s,s);
+  const peg=css('--peg');
+  for(let i=0;i<N*N;i++){
+    const cx=(i%N+.5)*cs,cy=(Math.floor(i/N)+.5)*cs,v=g[i];
+    if(v<0){
+      if(state.mode==='task'&&hint&&target[i]>=0){ctx.globalAlpha=.3;ctx.fillStyle=COLORS[target[i]][2];ctx.beginPath();ctx.arc(cx,cy,cs*.4,0,7);ctx.fill();ctx.globalAlpha=1}
+      ctx.fillStyle=peg;ctx.beginPath();ctx.arc(cx,cy,cs*.11,0,7);ctx.fill();
+    }else{
+      const h=cs*(.43+.07*f),rad=h*(1-.88*f);
+      ctx.fillStyle=COLORS[v][2];rr(cx-h,cy-h,h*2,h*2,rad);ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.arc(cx,cy,cs*(.15-.1*f),0,7);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,'+(.4*(1-f)).toFixed(2)+')';ctx.beginPath();ctx.arc(cx-cs*.2,cy-cs*.2,cs*.09,0,7);ctx.fill();
+    }
+  }
+  if(shine>=0){
+    const p=shine*(s*2.2)-s*.6,gr=ctx.createLinearGradient(p-s*.2,0,p+s*.2,s*.4);
+    gr.addColorStop(0,'rgba(255,255,255,0)');gr.addColorStop(.5,'rgba(255,255,255,.45)');gr.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=gr;ctx.fillRect(0,0,s,s);
+  }
+}
+function fit(){
+  const r=stage.getBoundingClientRect(),size=Math.floor(Math.min(r.width,r.height)),d=Math.min(window.devicePixelRatio||1,2);
+  cv.style.width=cv.style.height=size+'px';cv.width=cv.height=Math.round(size*d);draw();
+}
+new ResizeObserver(fit).observe(stage);
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
 
-      let tt;
-      function toast(t) {
-        const el = document.getElementById("toast");
-        el.textContent = t;
-        el.classList.add("show");
-        clearTimeout(tt);
-        tt = setTimeout(() => el.classList.remove("show"), 2400);
-      }
-      function progress() {
-        if (state.mode !== "task") return;
-        let want = 0,
-          ok = 0,
-          extra = 0;
-        for (let i = 0; i < N * N; i++) {
-          const t = target[i],
-            v = gridTask[i];
-          if (t >= 0) {
-            want++;
-            if (v === t) ok++;
-          } else if (v >= 0) extra++;
-        }
-        document.getElementById("pct").textContent =
-          Math.round((ok / (want + extra)) * 100) + "%";
-        const done = ok === want && extra === 0;
-        if (done && !state.won) {
-          state.won = true;
-          toast("拼好啦！点“熨烫定型”封存作品");
-        }
-        if (!done) state.won = false;
-      }
-      function save() {
-        try {
-          localStorage.setItem("pindou_free", JSON.stringify(gridFree));
-        } catch (e) {}
-      }
-      function cellAt(e) {
-        const r = cv.getBoundingClientRect(),
-          x = Math.floor(((e.clientX - r.left) / r.width) * N),
-          y = Math.floor(((e.clientY - r.top) / r.height) * N);
-        return x < 0 || y < 0 || x >= N || y >= N ? -1 : y * N + x;
-      }
-      function paint(i) {
-        if (i < 0) return;
-        const g = grid(),
-          v = state.tool === "pen" ? state.cur : -1;
-        if (g[i] !== v) {
-          g[i] = v;
-          draw();
-          progress();
-        }
-      }
-      function line(a, b) {
-        if (a < 0) {
-          paint(b);
-          return;
-        }
-        let x0 = a % N,
-          y0 = Math.floor(a / N);
-        const x1 = b % N,
-          y1 = Math.floor(b / N);
-        const dx = Math.abs(x1 - x0),
-          dy = -Math.abs(y1 - y0),
-          sx = x0 < x1 ? 1 : -1,
-          sy = y0 < y1 ? 1 : -1;
-        let er = dx + dy;
-        for (;;) {
-          paint(y0 * N + x0);
-          if (x0 === x1 && y0 === y1) break;
-          const e2 = 2 * er;
-          if (e2 >= dy) {
-            er += dy;
-            x0 += sx;
-          }
-          if (e2 <= dx) {
-            er += dx;
-            y0 += sy;
-          }
-        }
-      }
-      cv.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
-        if (state.ironed || state.anim) {
-          toast("豆子已经熨在一起了，先点“拆开重拼”");
-          return;
-        }
-        cv.setPointerCapture(e.pointerId);
-        undo.push(grid().slice());
-        if (undo.length > 60) undo.shift();
-        drawing = true;
-        last = -1;
-        const c = cellAt(e);
-        line(last, c);
-        last = c;
-      });
-      cv.addEventListener("pointermove", (e) => {
-        if (!drawing) return;
-        const c = cellAt(e);
-        if (c < 0 || c === last) return;
-        line(last, c);
-        last = c;
-      });
-      const end = () => {
-        if (drawing) {
-          drawing = false;
-          if (state.mode === "free") save();
-        }
-      };
-      cv.addEventListener("pointerup", end);
-      cv.addEventListener("pointercancel", end);
+let tt;function toast(t){const el=document.getElementById('toast');el.textContent=t;el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2400)}
+function progress(){
+  if(state.mode!=='task')return;
+  let want=0,ok=0,extra=0;
+  for(let i=0;i<N*N;i++){const t=target[i],v=gridTask[i];if(t>=0){want++;if(v===t)ok++}else if(v>=0)extra++}
+  document.getElementById('pct').textContent=Math.round(ok/(want+extra)*100)+'%';
+  const done=ok===want&&extra===0;
+  if(done&&!state.won){state.won=true;toast('拼好啦！点“熨烫定型”封存作品')}
+  if(!done)state.won=false;
+}
+function save(){try{localStorage.setItem('pindou_free',JSON.stringify(gridFree))}catch(e){}}
+function cellAt(e){
+  const r=cv.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)/r.width*N),y=Math.floor((e.clientY-r.top)/r.height*N);
+  return(x<0||y<0||x>=N||y>=N)?-1:y*N+x;
+}
+function paint(i){
+  if(i<0)return;const g=grid(),v=state.tool==='pen'?state.cur:-1;
+  if(g[i]!==v){g[i]=v;draw();progress()}
+}
+function line(a,b){
+  if(a<0){paint(b);return}
+  let x0=a%N,y0=Math.floor(a/N);const x1=b%N,y1=Math.floor(b/N);
+  const dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let er=dx+dy;
+  for(;;){paint(y0*N+x0);if(x0===x1&&y0===y1)break;const e2=2*er;if(e2>=dy){er+=dy;x0+=sx}if(e2<=dx){er+=dx;y0+=sy}}
+}
+cv.addEventListener('pointerdown',e=>{
+  e.preventDefault();
+  if(state.ironed||state.anim){toast('豆子已经熨在一起了，先点“拆开重拼”');return}
+  cv.setPointerCapture(e.pointerId);undo.push(grid().slice());if(undo.length>60)undo.shift();
+  drawing=true;last=-1;const c=cellAt(e);line(last,c);last=c;
+});
+cv.addEventListener('pointermove',e=>{if(!drawing)return;const c=cellAt(e);if(c<0||c===last)return;line(last,c);last=c});
+const end=()=>{if(drawing){drawing=false;if(state.mode==='free')save()}};
+cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);
 
-      function animate(to, done) {
-        const from = state.fuse,
-          t0 = performance.now(),
-          D = 1100;
-        state.anim = true;
-        (function step(t) {
-          const p = Math.min((t - t0) / D, 1),
-            e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
-          state.fuse = from + (to - from) * e;
-          shine = to === 1 ? p : -1;
-          draw();
-          if (p < 1) requestAnimationFrame(step);
-          else {
-            state.anim = null;
-            shine = -1;
-            state.fuse = to;
-            draw();
-            done && done();
-          }
-        })(t0);
-      }
-      const ironBtn = document.getElementById("iron");
-      function updIron() {
-        ironBtn.textContent = state.ironed ? "拆开重拼" : "熨烫定型";
-        ironBtn.disabled =
-          !!state.anim || (!state.ironed && grid().every((v) => v < 0));
-      }
-      ironBtn.onclick = () => {
-        if (state.anim) return;
-        if (state.ironed) {
-          state.ironed = false;
-          updIron();
-          animate(0, updIron);
-        } else {
-          state.ironed = true;
-          updIron();
-          animate(1, () => {
-            updIron();
-            toast("拼好啦，有人喜欢这只吗");
-          });
-        }
-      };
-      setInterval(updIron, 300);
+function animate(to,done){
+  const from=state.fuse,t0=performance.now(),D=1100;
+  state.anim=true;
+  (function step(t){
+    const p=Math.min((t-t0)/D,1),e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    state.fuse=from+(to-from)*e;shine=to===1?p:-1;draw();
+    if(p<1)requestAnimationFrame(step);else{state.anim=null;shine=-1;state.fuse=to;draw();done&&done()}
+  })(t0);
+}
+const ironBtn=document.getElementById('iron');
+function updIron(){ironBtn.textContent=state.ironed?'拆开重拼':'熨烫定型';ironBtn.disabled=!!state.anim||(!state.ironed&&grid().every(v=>v<0))}
+ironBtn.onclick=()=>{
+  if(state.anim)return;
+  if(state.ironed){state.ironed=false;updIron();animate(0,updIron)}
+  else{state.ironed=true;updIron();animate(1,()=>{updIron();toast('拼完啦，有人喜欢这只吗？')})}
+};
+setInterval(updIron,300);
 
-      // palette & tools
-      const pal = document.getElementById("pal");
-      COLORS.forEach((c, i) => {
-        const b = document.createElement("button");
-        b.className = "sw" + (i === 0 ? " on" : "");
-        b.style.background = c[2];
-        b.title = c[1];
-        b.setAttribute("aria-label", c[1]);
-        b.onclick = () => {
-          state.cur = i;
-          setTool("pen");
-          [...pal.children].forEach((x, j) =>
-            x.classList.toggle("on", j === i),
-          );
-        };
-        pal.appendChild(b);
-      });
-      function setTool(t) {
-        state.tool = t;
-        document.getElementById("pen").classList.toggle("on", t === "pen");
-        document.getElementById("era").classList.toggle("on", t === "era");
-      }
-      document.getElementById("pen").onclick = () => setTool("pen");
-      document.getElementById("era").onclick = () => setTool("era");
-      document.getElementById("und").onclick = () => {
-        if (state.ironed || state.anim || !undo.length) return;
-        const g = grid(),
-          p = undo.pop();
-        for (let i = 0; i < N * N; i++) g[i] = p[i];
-        draw();
-        progress();
-        if (state.mode === "free") save();
-      };
-      document.getElementById("clr").onclick = () => {
-        if (state.ironed || state.anim) return;
-        const g = grid();
-        undo.push(g.slice());
-        g.fill(-1);
-        draw();
-        progress();
-        if (state.mode === "free") save();
-      };
-      document.getElementById("hint").onchange = draw;
+// palette & tools
+const pal=document.getElementById('pal');
+COLORS.forEach((c,i)=>{
+  const b=document.createElement('button');b.className='sw'+(i===0?' on':'');b.style.background=c[2];b.title=c[1];b.setAttribute('aria-label',c[1]);
+  b.onclick=()=>{state.cur=i;setTool('pen');[...pal.children].forEach((x,j)=>x.classList.toggle('on',j===i))};
+  pal.appendChild(b);
+});
+function setTool(t){state.tool=t;document.getElementById('pen').classList.toggle('on',t==='pen');document.getElementById('era').classList.toggle('on',t==='era')}
+document.getElementById('pen').onclick=()=>setTool('pen');
+document.getElementById('era').onclick=()=>setTool('era');
+document.getElementById('und').onclick=()=>{if(state.ironed||state.anim||!undo.length)return;const g=grid(),p=undo.pop();for(let i=0;i<N*N;i++)g[i]=p[i];draw();progress();if(state.mode==='free')save()};
+document.getElementById('clr').onclick=()=>{if(state.ironed||state.anim)return;const g=grid();undo.push(g.slice());g.fill(-1);draw();progress();if(state.mode==='free')save()};
+document.getElementById('hint').onchange=draw;
 
-      // modes & templates
-      const tpls = document.getElementById("tpls");
-      Object.keys(TPL).forEach((k) => {
-        const b = document.createElement("button");
-        b.textContent = k;
-        b.className = k === state.tpl ? "on" : "";
-        b.onclick = () => {
-          state.tpl = k;
-          [...tpls.children].forEach((x) => x.classList.toggle("on", x === b));
-          resetBoard();
-          buildTarget();
-          gridTask.fill(-1);
-          draw();
-          progress();
-        };
-        tpls.appendChild(b);
-      });
-      function resetBoard() {
-        state.ironed = false;
-        state.anim = null;
-        state.fuse = 0;
-        shine = -1;
-        state.won = false;
-        undo = [];
-      }
-      document.querySelectorAll(".tabs button").forEach(
-        (b) =>
-          (b.onclick = () => {
-            state.mode = b.dataset.m;
-            document
-              .querySelectorAll(".tabs button")
-              .forEach((x) => x.classList.toggle("on", x === b));
-            document.getElementById("taskBox").hidden = state.mode !== "task";
-            resetBoard();
-            if (state.mode === "task") {
-              buildTarget();
-              gridTask.fill(-1);
-            }
-            draw();
-            progress();
-            updIron();
-          }),
-      );
-      let customTarget = null,
-        srcImg = null;
-      const RGB = COLORS.map((c) =>
-        [1, 3, 5].map((i) => parseInt(c[2].slice(i, i + 2), 16)),
-      );
-      function nearest(r, g, b) {
-        let best = 0,
-          bd = 1e9;
-        RGB.forEach((c, i) => {
-          const rm = (r + c[0]) / 2,
-            dr = r - c[0],
-            dg = g - c[1],
-            db = b - c[2];
-          const d =
-            (2 + rm / 256) * dr * dr +
-            4 * dg * dg +
-            (2 + (255 - rm) / 256) * db * db;
-          if (d < bd) {
-            bd = d;
-            best = i;
-          }
-        });
-        return best;
-      }
-      function convertImage() {
-        const w = srcImg.naturalWidth,
-          h = srcImg.naturalHeight,
-          sc = Math.min(N / w, N / h),
-          dw = Math.max(1, Math.round(w * sc)),
-          dh = Math.max(1, Math.round(h * sc));
-        const c = document.createElement("canvas");
-        c.width = c.height = N;
-        const x = c.getContext("2d", { willReadFrequently: true });
-        x.imageSmoothingQuality = "high";
-        x.drawImage(
-          srcImg,
-          Math.floor((N - dw) / 2),
-          Math.floor((N - dh) / 2),
-          dw,
-          dh,
-        );
-        const d = x.getImageData(0, 0, N, N).data,
-          nw = document.getElementById("nowhite").checked,
-          t = new Array(N * N).fill(-1);
-        let n = 0;
-        for (let i = 0; i < N * N; i++) {
-          const r = d[i * 4],
-            g = d[i * 4 + 1],
-            b = d[i * 4 + 2],
-            a = d[i * 4 + 3];
-          if (a < 100) continue;
-          if (nw && r > 232 && g > 232 && b > 232) continue;
-          t[i] = nearest(r, g, b);
-          n++;
-        }
-        if (!n) {
-          toast("这张图没有识别到内容，换一张试试");
-          return false;
-        }
-        customTarget = t;
-        return true;
-      }
-      function useCustom() {
-        state.tpl = "custom";
-        [...tpls.children].forEach((x) => x.classList.remove("on"));
-        if (state.mode !== "task") {
-          document.querySelector('.tabs button[data-m="task"]').click();
-        } else {
-          resetBoard();
-          buildTarget();
-          gridTask.fill(-1);
-        }
-        draw();
-        progress();
-        updIron();
-      }
-      document.getElementById("up").onclick = () =>
-        document.getElementById("file").click();
-      document.getElementById("file").onchange = (e) => {
-        const f = e.target.files[0];
-        if (!f) return;
-        const fr = new FileReader();
-        fr.onload = () => {
-          const im = new Image();
-          im.onload = () => {
-            srcImg = im;
-            if (convertImage()) {
-              useCustom();
-              toast("已转成拼豆图纸，开始拼吧");
-            }
-          };
-          im.onerror = () => toast("图片读取失败，换一张试试");
-          im.src = fr.result;
-        };
-        fr.readAsDataURL(f);
-        e.target.value = "";
-      };
-      document.getElementById("nowhite").onchange = () => {
-        if (srcImg && state.tpl === "custom" && convertImage()) useCustom();
-      };
-      buildTarget();
-      fit();
-      updIron();
-    </script>
-  </body>
+// modes & templates
+const tpls=document.getElementById('tpls');
+Object.keys(TPL).forEach(k=>{
+  const b=document.createElement('button');b.textContent=k;b.className=k===state.tpl?'on':'';
+  b.onclick=()=>{state.tpl=k;[...tpls.children].forEach(x=>x.classList.toggle('on',x===b));resetBoard();buildTarget();gridTask.fill(-1);draw();progress()};
+  tpls.appendChild(b);
+});
+function resetBoard(){state.ironed=false;state.anim=null;state.fuse=0;shine=-1;state.won=false;undo=[]}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  state.mode=b.dataset.m;document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.getElementById('taskBox').hidden=state.mode!=='task';
+  resetBoard();if(state.mode==='task'){buildTarget();gridTask.fill(-1)}
+  draw();progress();updIron();
+});
+let customTarget=null,srcImg=null;
+const RGB=COLORS.map(c=>[1,3,5].map(i=>parseInt(c[2].slice(i,i+2),16)));
+function nearest(r,g,b){let best=0,bd=1e9;RGB.forEach((c,i)=>{const rm=(r+c[0])/2,dr=r-c[0],dg=g-c[1],db=b-c[2];const d=(2+rm/256)*dr*dr+4*dg*dg+(2+(255-rm)/256)*db*db;if(d<bd){bd=d;best=i}});return best}
+function convertImage(){
+  const w=srcImg.naturalWidth,h=srcImg.naturalHeight,sc=Math.min(N/w,N/h),dw=Math.max(1,Math.round(w*sc)),dh=Math.max(1,Math.round(h*sc));
+  const c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d',{willReadFrequently:true});
+  x.imageSmoothingQuality='high';x.drawImage(srcImg,Math.floor((N-dw)/2),Math.floor((N-dh)/2),dw,dh);
+  const d=x.getImageData(0,0,N,N).data,nw=document.getElementById('nowhite').checked,t=new Array(N*N).fill(-1);let n=0;
+  for(let i=0;i<N*N;i++){const r=d[i*4],g=d[i*4+1],b=d[i*4+2],a=d[i*4+3];if(a<100)continue;if(nw&&r>232&&g>232&&b>232)continue;t[i]=nearest(r,g,b);n++}
+  if(!n){toast('这张图没有识别到内容，换一张试试');return false}
+  customTarget=t;return true;
+}
+function useCustom(){
+  state.tpl='custom';[...tpls.children].forEach(x=>x.classList.remove('on'));
+  if(state.mode!=='task'){document.querySelector('.tabs button[data-m="task"]').click()}
+  else{resetBoard();buildTarget();gridTask.fill(-1)}
+  draw();progress();updIron();
+}
+document.getElementById('up').onclick=()=>document.getElementById('file').click();
+document.getElementById('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const fr=new FileReader();
+  fr.onload=()=>{const im=new Image();im.onload=()=>{srcImg=im;if(convertImage()){useCustom();toast('已转成拼豆图纸，开始拼吧')}};im.onerror=()=>toast('图片读取失败，换一张试试');im.src=fr.result};
+  fr.readAsDataURL(f);e.target.value='';
+};
+document.getElementById('nowhite').onchange=()=>{if(srcImg&&state.tpl==='custom'&&convertImage())useCustom()};
+const gate=document.getElementById('gate'),opts=document.getElementById('opts'),gmsg=document.getElementById('gmsg');
+const OPTS=['终于完成啦！大家觉得怎么样？','你们觉得这个颜色搭配怎么样？','拼完啦，有人喜欢这只吗？','猜猜下一次我们要拼什么？'];
+const LOCK_MS=5*60*1000;let lockUntil=0,tick=null;
+try{lockUntil=+localStorage.getItem('pindou_lock')||0}catch(e){}
+function showLock(){
+  clearInterval(tick);
+  const upd=()=>{
+    const left=lockUntil-Date.now();
+    if(left<=0){clearInterval(tick);[...opts.children].forEach(b=>b.disabled=false);gmsg.textContent='可以再答一次了';return}
+    const s=Math.ceil(left/1000);[...opts.children].forEach(b=>b.disabled=true);
+    gmsg.textContent='答错了，'+Math.floor(s/60)+' 分 '+String(s%60).padStart(2,'0')+' 秒后可以再答';
+  };
+  upd();tick=setInterval(upd,500);
+}
+OPTS.forEach((t,i)=>{
+  const b=document.createElement('button');b.textContent=t;
+  b.onclick=()=>{
+    if(Date.now()<lockUntil)return;
+    if(i===2){clearInterval(tick);gate.hidden=true;try{localStorage.removeItem('pindou_lock')}catch(e){}}
+    else{lockUntil=Date.now()+LOCK_MS;try{localStorage.setItem('pindou_lock',String(lockUntil))}catch(e){}showLock()}
+  };
+  opts.appendChild(b);
+});
+if(lockUntil>Date.now())showLock();
+buildTarget();fit();updIron();
+</script>
+</body>
 </html>
